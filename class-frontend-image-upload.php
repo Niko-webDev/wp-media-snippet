@@ -22,12 +22,49 @@ if ( ! class_exists( 'Frontend_Image_Upload' ) ) {
 			// Loads wp-media & our own script.
 			add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
 
+			// Filters the attachment data prepared for JavaScript.
+			add_filter( 'wp_prepare_attachment_for_js', array( $this, 'prepare_attachment_for_js' ), 999, 3 );
+
 			// Filters the attachments ajax query that fetches the files shown in the modal library tab.
 			add_filter( 'ajax_query_attachments_args', array( $this, 'media_ajax_query' ) );
 
 			// Hook into Media Upload to apply our filters.
 			add_filter( 'wp_handle_upload_prefilter', array( $this, 'handle_upload_prefilter' ) );
 		}
+
+
+
+		/**
+		 * Used to prevent front-end users to edit & delete images from WP media modal.
+		 *
+		 * @param array       $response array Array of prepared attachment data. @see wp_prepare_attachment_for_js().
+		 * @param WP_Post     $attachment Attachment object.
+		 * @param array|false $meta Array of attachment meta data, or false if there is none.
+		 *
+		 * @return array
+		 */
+		public function prepare_attachment_for_js( $response, $attachment, $meta ) {
+
+			// Admins keep their privilege.
+			if ( current_user_can( 'update_core' ) ) {
+				return $response;
+			}
+
+			// No editing nor deleting images.
+			$response['editLink'] = false;
+			$response['nonces']   = array(
+				'update' => false,
+				'delete' => false,
+				'edit'   => false,
+			);
+
+			// To allow users to delete, but not edit their images:
+				// $response['nonces']['update'] = false;
+				// $response['nonces']['edit'] = false;
+
+			return $response;
+		}
+
 
 
 		/**
